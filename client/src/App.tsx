@@ -20,7 +20,11 @@ const App: React.FC = () => {
   };
   return (
     <div className="flex h-screen bg-black text-white">
-      <Sidebar onSelect={setCurrentDoc} onCreate={createNewDocument} />
+      <Sidebar
+        onSelect={setCurrentDoc}
+        onCreate={createNewDocument}
+        currentDocId={currentDoc?.id}
+      />
       <div className="w-full">
         {currentDoc ? (
           <Editor doc={currentDoc} setDoc={setCurrentDoc} />
