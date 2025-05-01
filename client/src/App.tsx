@@ -19,7 +19,7 @@ const App: React.FC = () => {
     setCurrentDoc(newDoc);
   };
   return (
-    <div className="flex h-screen bg-black text-white">
+    <div className="flex min-h-screen h-fit bg-[rgba(25,25,25,1)] text-white">
       <Sidebar
         onSelect={setCurrentDoc}
         onCreate={createNewDocument}

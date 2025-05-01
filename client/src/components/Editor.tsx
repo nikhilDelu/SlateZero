@@ -1,5 +1,5 @@
 import { Block, BlockType } from "../types/Block";
-import { Key, useEffect, useRef, useState } from "react";
+import { Key, useEffect, useRef } from "react";
 import { debounceSaveDocument, saveDocument } from "../utils/storage";
 import { DocumentData } from "../types/Document";
 import html2pdf from "html2pdf.js";
@@ -13,16 +13,7 @@ const Editor: React.FC<EditorProps> = ({ doc, setDoc }) => {
   const refMap = useRef<Record<string, HTMLElement | null>>({});
   const exportRef = useRef<HTMLDivElement>(null);
   const blockStyle =
-    "rounded-lg p-2 bg-white/5 text-gray-300 max-w-[calc(100%-16px)] min-w-[calc(100%-16px)] m-2 whitespace-pre-wrap break-words overflow-x-auto";
-
-  const updateBlockContent = (id: string, content: string) => {
-    const newBlocks: Block[] = doc.blocks.map((block: Block) =>
-      block.id === id ? { ...block, content } : block
-    );
-    const updatedDoc = { ...doc, blocks: newBlocks, updatedAt: Date.now() };
-    setDoc(updatedDoc);
-    debounceSaveDocument(updatedDoc);
-  };
+    "p-2 border-b-2 border-[rgb(32,32,32)] text-gray-300 max-w-[calc(100%-16px)] min-w-[calc(100%-16px)] m-2 whitespace-pre-wrap break-words overflow-x-auto focus:outline-none";
 
   const updateBlocks = (id: string) => {
     const ref = refMap.current[id];
@@ -93,7 +84,7 @@ const Editor: React.FC<EditorProps> = ({ doc, setDoc }) => {
             {...commonProps}
             className={`${blockStyle} list-disc list-inside`}
           >
-            {listItems || ""}
+            <li>{listItems || ""}</li>
           </ul>
         );
       case "code":
@@ -194,49 +185,67 @@ const Editor: React.FC<EditorProps> = ({ doc, setDoc }) => {
     URL.revokeObjectURL(url);
   };
   const downloadPDF = () => {
-    if (!exportRef.current) return;
+    const element = exportRef.current;
+    if (!element) return;
 
-    const opt = {
-      margin: 0.5,
-      filename: `${doc.title || "document"}.pdf`,
-      image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
-    };
+    // Create a wrapper div with desired styles
+    const wrapper = document.createElement("div");
+    wrapper.style = "color:black"; // Apply Tailwind classes
 
-    html2pdf().from(exportRef.current).set(opt).save();
+    // Clone the export content
+    const clone = element.cloneNode(true) as HTMLElement;
+
+    // Append the cloned content inside the styled wrapper
+    wrapper.appendChild(clone);
+
+    // Append the wrapper to body temporarily (required by html2pdf)
+    document.body.appendChild(wrapper);
+
+    html2pdf()
+      .from(wrapper)
+      .set({
+        margin: 0.5,
+        filename: `${doc.title || "document"}.pdf`,
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
+      })
+      .save()
+      .then(() => {
+        // Clean up the temporary wrapper after saving
+        document.body.removeChild(wrapper);
+      });
   };
 
   return (
-    <div className="h-full text-white">
-      <div className="w-full flex justify-center">
-        <div className="bg-white/5 flex justify-around items-center border border-white/40 rounded-lg m-2 mx-2 text-xs w-full h-10 max-w-2xl mx-auto">
-          <button
-            className="hover:text-blue-500 hover:underline transition-all duration-100 hover:scale-105 hov w-full h-full"
-            onClick={() => addBlock("heading")}
-          >
-            Add Heading
-          </button>
-          <button
-            className="hover:text-blue-500 hover:underline transition-all duration-100 hover:scale-105 hov w-full h-full"
-            onClick={() => addBlock("paragraph")}
-          >
-            Add Paragraph
-          </button>
-          <button
-            className="hover:text-blue-500 hover:underline transition-all duration-100 hover:scale-105 hov w-full h-full"
-            onClick={() => addBlock("list")}
-          >
-            Add List
-          </button>
-          <button
-            className="hover:text-blue-500 hover:underline transition-all duration-100 hover:scale-105 hov w-full h-full"
-            onClick={() => addBlock("code")}
-          >
-            Add Code Block
-          </button>
-        </div>
+    <div className="h-screen overflow-hidden overflow-y-scroll text-white relative">
+      {/* <div className="w-full flex justify-center"> */}
+      <div className="bg-[rgb(32,32,32)] z-50 backdrop-blur-md flex justify-around items-center border-b-2 border-white/5 text-xs w-full h-10 font-mono">
+        <button
+          className="hover:text-blue-500 hover:underline transition-all duration-100 hover:scale-105 hov w-full h-full"
+          onClick={() => addBlock("heading")}
+        >
+          Add Heading
+        </button>
+        <button
+          className="hover:text-blue-500 hover:underline transition-all duration-100 hover:scale-105 hov w-full h-full"
+          onClick={() => addBlock("paragraph")}
+        >
+          Add Paragraph
+        </button>
+        <button
+          className="hover:text-blue-500 hover:underline transition-all duration-100 hover:scale-105 hov w-full h-full"
+          onClick={() => addBlock("list")}
+        >
+          Add List
+        </button>
+        <button
+          className="hover:text-blue-500 hover:underline transition-all duration-100 hover:scale-105 hov w-full h-full"
+          onClick={() => addBlock("code")}
+        >
+          Add Code Block
+        </button>
       </div>
+      {/* </div> */}
       <div ref={exportRef}>
         {doc.blocks.map((block) => (
           <div key={block.id}>{renderBlock(block)}</div>
